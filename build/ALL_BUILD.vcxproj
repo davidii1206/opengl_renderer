@@ -178,9 +178,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\Users\David.Nu\Documents\coding projects\opengl_renderer\build\OpenGLRendere.vcxproj">
-      <Project>{5B03E3A6-6FFF-37E8-9409-C12F0ACE3EE7}</Project>
-      <Name>OpenGLRendere</Name>
+    <ProjectReference Include="C:\Users\David.Nu\Documents\coding projects\opengl_renderer\build\OpenGLRenderer.vcxproj">
+      <Project>{47CB9608-6D46-3DE5-8529-1A1CF60A78EE}</Project>
+      <Name>OpenGLRenderer</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
