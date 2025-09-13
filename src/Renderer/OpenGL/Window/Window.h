@@ -7,7 +7,7 @@
 
 enum class WindowMode { Windowed, Borderless, Fullscreen };
 
-struct Window{
+struct Window {
     uint32_t width;
     uint32_t height;
     std::string title;
@@ -16,6 +16,42 @@ struct Window{
     SDL_Window* handle = nullptr;
     SDL_GLContext context = nullptr;
     bool hasFocus;
+};
+
+struct OpenGLSettings {
+    bool depthTest = true;
+    GLenum depthFunc = GL_LESS;
+
+    bool cullFace = true;
+    GLenum cullMode = GL_BACK;
+
+    bool blend = true;
+    GLenum blendSrc = GL_SRC_ALPHA;
+    GLenum blendDst = GL_ONE_MINUS_SRC_ALPHA;
+
+    // Apply the settings to OpenGL
+    void Apply() const {
+        if (depthTest) {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(depthFunc);
+        } else {
+            glDisable(GL_DEPTH_TEST);
+        }
+
+        if (cullFace) {
+            glEnable(GL_CULL_FACE);
+            glCullFace(cullMode);
+        } else {
+            glDisable(GL_CULL_FACE);
+        }
+
+        if (blend) {
+            glEnable(GL_BLEND);
+            glBlendFunc(blendSrc, blendDst);
+        } else {
+            glDisable(GL_BLEND);
+        }
+    }
 };
 
 inline Window window;
@@ -44,7 +80,7 @@ void    SetResolution(Window* win, int width, int height);
 void    SetVsync(Window* win, bool enabled);
 
 void    SwapBuffers(Window* win);
-void    PollEvents(Window* win);
+std::vector<SDL_Event> PollEvents();
 
 bool    WindowHasFocus(const Window* win);
 glm::ivec2 GetWindowSize(const Window* win);

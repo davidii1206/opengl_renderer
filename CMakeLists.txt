@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(OpenGLRenderer 
     ${PROJECT_SOURCE_DIR}/src/main.cpp
     ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Window/Window.cpp
+    ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Buffer/Buffer.cpp
+    ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Vertex/VertexArray.cpp
     ${PROJECT_SOURCE_DIR}/lib/glad/src/glad.c
     ${PROJECT_SOURCE_DIR}/lib/imgui-1.92.2b/imgui.cpp
     ${PROJECT_SOURCE_DIR}/lib/imgui-1.92.2b/imgui_draw.cpp

@@ -113,32 +113,13 @@ void SwapBuffers(Window* win) {
     SDL_GL_SwapWindow(win->handle);
 }
 
-void PollEvents(Window* win) {
-    if (!win) return;
-
+std::vector<SDL_Event> PollEvents() {
+    std::vector<SDL_Event> events;
     SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        switch (event.type) {
-            case SDL_EVENT_WINDOW_FOCUS_GAINED:
-                win->hasFocus = true;
-                break;
-
-            case SDL_EVENT_WINDOW_FOCUS_LOST:
-                win->hasFocus = false;
-                break;
-
-            case SDL_EVENT_WINDOW_RESIZED:
-                win->width  = event.window.data1;
-                win->height = event.window.data2;
-                break;
-
-            case SDL_EVENT_QUIT:
-                win->hasFocus = false;
-                break;
-
-            default: break;
-        }
+    while(SDL_PollEvent(&event)) {
+        events.push_back(event);
     }
+    return events;
 }
 
 bool WindowHasFocus(const Window* win) {
@@ -176,21 +157,12 @@ void SetRelativeMouseMode(Window* win, bool enabled) {
 }
 
 void BeginFrame(const glm::vec4& clearColor) {
-    glViewport(0, 0, s_CurrentWindow.width, s_CurrentWindow.height),
-
-    glClearColor(clearColor.r, clearColor.b, clearColor.g, clearColor.a);
+    glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void BeginFrameImGui(Window* win, const glm::vec4& clearColor) {
-    glViewport(0, 0, win->width, win->height),
+    glViewport(0, 0, win->width, win->height);
 
     glClearColor(clearColor.r, clearColor.b, clearColor.g, clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

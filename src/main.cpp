@@ -2,8 +2,11 @@
 #include <SDL3/SDL_timer.h>
 #include <glad/glad.h>
 #include <iostream>
+#include <memory>
 
 #include "Renderer/OpenGL/Window/Window.h"
+#include "Renderer/OpenGL/Buffer/Buffer.h"
+#include "Renderer/OpenGL/Vertex/VertexArray.h"
 
 int main(int argc, char* argv[]) {
 
@@ -25,8 +28,21 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    OpenGLSettings glSettings;
+    glSettings.Apply();
+
     // Set viewport
     glm::ivec2 size = GetWindowSize(winPtr);
+
+    struct Vertex {
+        glm::vec3 position;
+    };
+
+    VertexDescription VertexDesc;
+    VertexDesc.stride = sizeof(Vertex),
+    VertexDesc.attributes = {
+        {0, 3, GL_FLOAT, offsetof(Vertex, position), false}
+    };
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f,
@@ -47,10 +63,6 @@ int main(int argc, char* argv[]) {
     "{\n"
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
-
-    uint32_t vao;
-    uint32_t vbo;
-    uint32_t ebo;
 
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
@@ -88,14 +100,10 @@ int main(int argc, char* argv[]) {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    auto vaoPtr = CreateVertexArray();
+    vaoPtr->desc = VertexDesc;
+    auto vboPtr = CreateBuffer(BufferType::Vertex, sizeof(vertices), vertices, BufferUsage::Static, 0);
+    vaoPtr->ApplyLayout(vboPtr->id);
     glUseProgram(shaderProgram);
 
     // Main loop
@@ -108,25 +116,12 @@ int main(int argc, char* argv[]) {
     bool running = true;
     while (running) {
         // Poll events
-        PollEvents(winPtr);
-
-        // Check if window still has focus / not closed
-        if (!WindowHasFocus(winPtr)) {
-            running = false;
-            break;
+        auto events = PollEvents();
+        for(auto &e : events) {
+            if (e.type == SDL_EVENT_QUIT) running = false;
+            if (e.type == SDL_EVENT_WINDOW_RESIZED) glViewport(0, 0, s_CurrentWindow.width, s_CurrentWindow.height);
         }
 
-        frameCount++;
-
-        Uint64 now = SDL_GetPerformanceCounter();
-        elapsedTime += static_cast<double>(now - lastTime) / perfFreq;
-        lastTime = now;
-
-        if (elapsedTime >= 1.0) { // 1 second elapsed
-            std::cout << "FPS: " << frameCount << std::endl;
-            frameCount = 0;
-            elapsedTime = 0.0;
-        }
         BeginFrame(glm::vec4{0.1f, 0.1f, 0.1f, 1.f});
 
         glDrawArrays(GL_TRIANGLES, 0, 3);
