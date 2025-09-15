@@ -1,49 +1,3 @@
-#pragma once
-#include <string>
-#include <glm/glm.hpp>
-
-//Include Files
-#include "Window/Window.h"
-
-#pragma once
-#include <cstdint>
-#include <cstddef>
-#include <vector>
-#include <string>
-#include <glm/glm.hpp>
-
-// ----------------------------------------
-// Buffers
-// ----------------------------------------
-enum class BufferType { Vertex, Index, Uniform, Storage };
-enum class BufferUsage { Static, Dynamic, Stream };
-
-struct Buffer {
-    uint32_t id;
-    BufferType type;
-    size_t size;
-};
-
-Buffer glrCreateBuffer(BufferType type, size_t size, const void* data = nullptr, BufferUsage usage = BufferUsage::Static);
-void   glrUpdateBuffer(Buffer& buf, const void* data, size_t size, size_t offset = 0);
-void*  glrMapBuffer(Buffer& buf);
-void   glrUnmapBuffer(Buffer& buf);
-void   glrDestroyBuffer(Buffer& buf);
-void   glrReadBuffer(Buffer& buf, void* outData, size_t size, size_t offset = 0);
-
-// ----------------------------------------
-// Vertex Array Objects
-// ----------------------------------------
-struct VertexArray {
-    uint32_t id;
-};
-
-VertexArray glrCreateVertexArray();
-void        glrBindVertexArray(const VertexArray& vao);
-void        glrEnableVertexAttrib(const VertexArray& vao, const Buffer& vbo,
-                                  uint32_t index, int size, int type,
-                                  bool normalized, int stride, size_t offset);
-void        glrDestroyVertexArray(VertexArray& vao);
 
 // ----------------------------------------
 // Shaders
@@ -99,60 +53,6 @@ Framebuffer glrCreateFramebuffer(Texture color, Texture depth = {});
 void        glrBindFramebuffer(const Framebuffer& fb);
 void        glrDestroyFramebuffer(Framebuffer& fb);
 
-#pragma once
-#include <cstdint>
-#include <vector>
-#include <string>
-#include <glm/glm.hpp>
-
-enum class ShaderStage { Vertex, Fragment, Geometry, TessControl, TessEval, Compute };
-enum class BufferType { Vertex, Index, Uniform, Storage };
-enum class BufferUsage { Static, Dynamic, Stream };
-enum class VertexAttribType { Float, Int, UInt, Byte, UByte }; 
-
-struct Buffer {
-    uint32_t id;
-    BufferType type;
-    size_t size;
-};
-
-struct VertexAttrib {
-    uint32_t index;          // Attribute location in shader
-    VertexAttribType type;   // How bytes are interpreted
-    int componentCount;      // 1,2,3,4
-    bool normalized;
-    size_t stride;           // Byte stride between elements
-    size_t offset;           // Byte offset
-};
-
-struct VertexLayout {
-    std::vector<VertexAttrib> attribs;
-    size_t stride;
-};
-
-struct VertexArray {
-    uint32_t id;
-    VertexLayout layout;
-};
-
-// --------------------------
-// Buffers
-// --------------------------
-Buffer glrCreateBuffer(BufferType type, size_t size, const void* data = nullptr, BufferUsage usage = BufferUsage::Static);
-void   glrUpdateBuffer(Buffer& buf, const void* data, size_t size, size_t offset = 0);
-void*  glrMapBuffer(Buffer& buf);
-void   glrUnmapBuffer(Buffer& buf);
-void   glrDestroyBuffer(Buffer& buf);
-void   glrReadBuffer(Buffer& buf, void* outData, size_t size, size_t offset = 0);
-
-// --------------------------
-// Vertex Arrays
-// --------------------------
-VertexArray glrCreateVertexArray();
-void        glrBindVertexArray(const VertexArray& vao);
-void        glrBindVertexBuffer(const VertexArray& vao, const Buffer& vbo, size_t offset = 0);
-void        glrEnableVertexAttrib(const VertexArray& vao, const VertexAttrib& attrib);
-void        glrDestroyVertexArray(VertexArray& vao);
 
 // --------------------------
 // Raw Data (bytes)
@@ -165,17 +65,6 @@ void glrBindRawBufferToShader(const Shader& shader, const std::string& name, con
 #include <glm/glm.hpp>
 #include <memory>
 #include "gpu_data_layer.h" // the low-level API from before
-
-// -------------------------
-// Texture
-// -------------------------
-struct Texture {
-    gpu::Texture handle; // low-level GPU handle
-    std::string name;
-};
-
-Texture rLoadTexture2D(const std::string& filepath, bool srgb = true);
-Texture rCreateTexture2D(int width, int height, gpu::TextureFormat format, const void* data = nullptr);
 
 // -------------------------
 // Shader / Material

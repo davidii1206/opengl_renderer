@@ -9,6 +9,9 @@ add_executable(OpenGLRenderer
     ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Window/Window.cpp
     ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Buffer/Buffer.cpp
     ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Vertex/VertexArray.cpp
+    ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Shader/Shader.cpp
+    ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Shader/ShaderProgram.cpp
+    ${PROJECT_SOURCE_DIR}/src/Renderer/OpenGL/Camera/Camera.cpp
     ${PROJECT_SOURCE_DIR}/lib/glad/src/glad.c
     ${PROJECT_SOURCE_DIR}/lib/imgui-1.92.2b/imgui.cpp
     ${PROJECT_SOURCE_DIR}/lib/imgui-1.92.2b/imgui_draw.cpp
@@ -44,3 +47,9 @@ add_custom_command(TARGET OpenGLRenderer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/lib/SDL3/lib/x64/SDL3.dll"
         $<TARGET_FILE_DIR:OpenGLRenderer>)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  ${CMAKE_SOURCE_DIR}/src/Shader
+  $<TARGET_FILE_DIR:${PROJECT_NAME}>/Shader
+)

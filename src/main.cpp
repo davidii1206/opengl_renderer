@@ -4,9 +4,15 @@
 #include <iostream>
 #include <memory>
 
+#include "Utils/fpscounter.h"
+#include "Utils/CameraControls.h"
+
 #include "Renderer/OpenGL/Window/Window.h"
 #include "Renderer/OpenGL/Buffer/Buffer.h"
 #include "Renderer/OpenGL/Vertex/VertexArray.h"
+#include "Renderer/OpenGL/Shader/Shader.h"
+#include "Renderer/OpenGL/Shader/ShaderProgram.h"
+#include "Renderer/OpenGL/Camera/Camera.h"
 
 int main(int argc, char* argv[]) {
 
@@ -50,83 +56,52 @@ int main(int argc, char* argv[]) {
         0.0f,  0.5f, 0.0f
     }; 
 
-    const char *vertexShaderSource = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-
-    const char *fragmentShaderSource = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
-
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-    int success;
-    char infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // fragment shader
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    // check for shader compile errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-    // link shaders
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    // check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    auto vertPtr = CreateShader(ShaderStage::Vertex, "Shader/vert.glsl");
+    auto fragPtr = CreateShader(ShaderStage::Fragment, "Shader/frag.glsl");
+    auto programPtr = CreateShaderProgram({vertPtr.get(), fragPtr.get()});
 
     auto vaoPtr = CreateVertexArray();
     vaoPtr->desc = VertexDesc;
     auto vboPtr = CreateBuffer(BufferType::Vertex, sizeof(vertices), vertices, BufferUsage::Static, 0);
     vaoPtr->ApplyLayout(vboPtr->id);
-    glUseProgram(shaderProgram);
 
-    // Main loop
-    Uint64 lastTime = SDL_GetPerformanceCounter();
-    Uint64 frameCount = 0;
-    double elapsedTime = 0.0;
-    double perfFreq = static_cast<double>(SDL_GetPerformanceFrequency());
+    programPtr->useShaderProgram();
 
-    // Main loop
     bool running = true;
+    Uint64 lastFrame = SDL_GetPerformanceCounter();
+    HideCursor();
+    SetRelativeMouseMode(winPtr, true);
+
+    // Camera
+    Camera camera(90.0f, winPtr->width/winPtr->height, 0.1f, 10000.0f);
+
     while (running) {
-        // Poll events
+        Uint64 currentFrame = SDL_GetPerformanceCounter();
+        float deltaTime = (currentFrame - lastFrame) / static_cast<float>(SDL_GetPerformanceFrequency());
+        lastFrame = currentFrame;
+
         auto events = PollEvents();
-        for(auto &e : events) {
+        for (auto& e : events) {
             if (e.type == SDL_EVENT_QUIT) running = false;
-            if (e.type == SDL_EVENT_WINDOW_RESIZED) glViewport(0, 0, s_CurrentWindow.width, s_CurrentWindow.height);
+            if (e.type == SDL_EVENT_WINDOW_RESIZED)
+                glViewport(0, 0, s_CurrentWindow.width, s_CurrentWindow.height);
+            if (e.type == SDL_EVENT_MOUSE_MOTION) {
+                mouse_callback(winPtr, &camera, e.motion.x, e.motion.y);
+            }
         }
 
+        processInput(winPtr, &camera, deltaTime);
+
         BeginFrame(glm::vec4{0.1f, 0.1f, 0.1f, 1.f});
+
+        programPtr->SetUniformMat4("u_View", camera.GetViewMatrix());
+        programPtr->SetUniformMat4("u_Projection", camera.GetProjectionMatrix());
 
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         EndFrame();
+
+        fps_counter();
     }
 
     // Cleanup
