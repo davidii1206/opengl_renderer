@@ -6,6 +6,7 @@
 
 #include "Utils/fpscounter.h"
 #include "Utils/CameraControls.h"
+#include "Utils/Cubemap.h"
 
 #include "Renderer/OpenGL/Window/Window.h"
 #include "Renderer/OpenGL/Buffer/Buffer.h"
@@ -13,14 +14,15 @@
 #include "Renderer/OpenGL/Shader/Shader.h"
 #include "Renderer/OpenGL/Shader/ShaderProgram.h"
 #include "Renderer/OpenGL/Camera/Camera.h"
+#include "Renderer/OpenGL/Texture/Texture.h"
 
 int main(int argc, char* argv[]) {
 
     // Setup window parameters
-    window.width  = 800;
-    window.height = 600;
+    window.width  = 2560;
+    window.height = 1440;
     window.title  = "My OpenGL SDL3 Window";
-    window.mode   = WindowMode::Windowed;
+    window.mode   = WindowMode::Fullscreen;
     window.vsync  = false;
     window.hasFocus = true;
 
@@ -40,21 +42,27 @@ int main(int argc, char* argv[]) {
     // Set viewport
     glm::ivec2 size = GetWindowSize(winPtr);
 
+    // Camera
+    Camera camera(90.0f, winPtr->width/winPtr->height, 0.1f, 10000.0f);
+
     struct Vertex {
         glm::vec3 position;
+        glm::vec2 texCoord;
     };
 
     VertexDescription VertexDesc;
-    VertexDesc.stride = sizeof(Vertex),
+    VertexDesc.stride = sizeof(Vertex);
     VertexDesc.attributes = {
-        {0, 3, GL_FLOAT, offsetof(Vertex, position), false}
+        {0, 3, GL_FLOAT, offsetof(Vertex, position), false}, // position
+        {1, 2, GL_FLOAT, offsetof(Vertex, texCoord), false}  // texCoords
     };
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
-    }; 
+        // positions        // texCoords
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, // bottom-left
+        0.5f, -0.5f, 0.0f,  1.0f, 0.0f, // bottom-right
+        0.0f,  0.5f, 0.0f,  0.5f, 1.0f  // top-center
+    };
 
     auto vertPtr = CreateShader(ShaderStage::Vertex, "Shader/vert.glsl");
     auto fragPtr = CreateShader(ShaderStage::Fragment, "Shader/frag.glsl");
@@ -65,15 +73,32 @@ int main(int argc, char* argv[]) {
     auto vboPtr = CreateBuffer(BufferType::Vertex, sizeof(vertices), vertices, BufferUsage::Static, 0);
     vaoPtr->ApplyLayout(vboPtr->id);
 
-    programPtr->useShaderProgram();
+    auto texPtr = CreateTexture(
+        "Textures/Mattheo.png",        // file path
+        nullptr,                       // faces = nullptr for 2D
+        TextureType::Tex2D,
+        TextureFormat::RGBA,
+        TextureInternalFormat::RGBA8,
+        0,                             // bind to texture unit 0
+        TextureFilter::LinearMipmapLinear,  // min filter
+        TextureFilter::Linear,              // mag filter
+        TextureWrap::Repeat,                // wrap S
+        TextureWrap::Repeat                 // wrap T
+    );
 
+    programPtr->useShaderProgram();
+    programPtr->SetUniform1i("uTexture", 0);
+    texPtr->bind(0);
+
+    // Cubemap
+    std::cout << "skrr\n";
+    initCube();
+
+    auto UBOcamera = CreateBuffer(BufferType::Uniform, sizeof(glm::mat4) * 2, nullptr, BufferUsage::Dynamic, 0);
     bool running = true;
     Uint64 lastFrame = SDL_GetPerformanceCounter();
     HideCursor();
     SetRelativeMouseMode(winPtr, true);
-
-    // Camera
-    Camera camera(90.0f, winPtr->width/winPtr->height, 0.1f, 10000.0f);
 
     while (running) {
         Uint64 currentFrame = SDL_GetPerformanceCounter();
@@ -94,9 +119,19 @@ int main(int argc, char* argv[]) {
 
         BeginFrame(glm::vec4{0.1f, 0.1f, 0.1f, 1.f});
 
-        programPtr->SetUniformMat4("u_View", camera.GetViewMatrix());
-        programPtr->SetUniformMat4("u_Projection", camera.GetProjectionMatrix());
+        // Update camera UBO
+        UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetViewMatrix()), sizeof(glm::mat4));
+        UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetProjectionMatrix()), sizeof(glm::mat4), sizeof(glm::mat4));
 
+        // Draw skybox first (it will be behind everything due to depth = 1.0)
+        drawCubemap();
+
+        // Now draw your triangle with its own shader and VAO
+        vaoPtr->bind();  // Bind the triangle's VAO
+        programPtr->useShaderProgram();  // Use the triangle's shader
+        programPtr->SetUniform1i("uTexture", 0);
+        texPtr->bind(0);  // Bind the triangle's texture
+        
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         EndFrame();

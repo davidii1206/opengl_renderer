@@ -1,28 +1,3 @@
-
-// ----------------------------------------
-// Shaders
-// ----------------------------------------
-enum class ShaderStage { Vertex, Fragment, Geometry, TessControl, TessEval, Compute };
-
-struct Shader {
-    uint32_t id;
-};
-
-Shader glrCreateShader(const std::string& source, ShaderStage stage);
-Shader glrCreateShaderProgram(const std::vector<Shader>& shaders);
-void   glrDestroyShader(Shader& shader);
-void   glrBindShader(const Shader& shader);
-
-// Set shader data (uniforms, textures, SSBOs, images)
-void glrSetUniformInt(const Shader& shader, const std::string& name, int value);
-void glrSetUniformFloat(const Shader& shader, const std::string& name, float value);
-void glrSetUniformVec3(const Shader& shader, const std::string& name, const glm::vec3& value);
-void glrSetUniformMat4(const Shader& shader, const std::string& name, const glm::mat4& value);
-
-void glrBindTextureToShader(const Shader& shader, const std::string& name, uint32_t textureID, int slot);
-void glrBindSSBOToShader(const Shader& shader, const std::string& name, const Buffer& buf, int binding);
-void glrBindImageToShader(const Shader& shader, const std::string& name, uint32_t texID, int unit, bool write = true);
-
 // ----------------------------------------
 // Textures
 // ----------------------------------------
@@ -132,34 +107,7 @@ Model rLoadModel(const std::string& filepath); // uses Assimp internally
 
 enum class CameraType { Perspective, Orthographic };
 
-// ------------------------
-// Base Camera
-// ------------------------
-struct Camera {
-    CameraType type = CameraType::Perspective;
-    glm::vec3 position = {0,0,0};
-    glm::vec3 target   = {0,0,-1};
-    glm::vec3 up       = {0,1,0};
 
-    float fovY = 60.0f;          // perspective
-    float aspect = 16.0f/9.0f;   // perspective
-    float nearClip = 0.1f;
-    float farClip  = 1000.0f;
-
-    float orthoWidth  = 10.0f;    // orthographic
-    float orthoHeight = 10.0f;
-
-    // Matrices
-    glm::mat4 getViewMatrix() const;
-    glm::mat4 getProjectionMatrix() const;
-    glm::mat4 getViewProjectionMatrix() const;
-
-    // Screen utilities
-    glm::vec3 screenToWorld(const glm::vec2& screenPos, float depth) const;
-    glm::vec3 screenToRay(const glm::vec2& screenPos) const;
-
-    void updateAspect(float aspectRatio);
-};
 
 // ------------------------
 // Editor Camera

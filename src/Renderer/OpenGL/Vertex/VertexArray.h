@@ -18,6 +18,7 @@ class VertexArray {
         VertexArray& operator=(VertexArray&& other) noexcept;
 
         void ApplyLayout(GLuint vertexBufferID, GLuint bindingIndex = 0, GLintptr offset = 0) const;
+        void bind() const { glBindVertexArray(id); }
 
         GLuint id = 0;
         VertexDescription desc;

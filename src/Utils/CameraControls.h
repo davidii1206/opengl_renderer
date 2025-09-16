@@ -18,7 +18,7 @@ inline void mouse_callback(Window* win, Camera* camera, float xpos, float ypos) 
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed
+    float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
 

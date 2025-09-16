@@ -22,3 +22,4 @@ inline void fps_counter() {
         elapsedTime = 0.0;
     }
 }
+
