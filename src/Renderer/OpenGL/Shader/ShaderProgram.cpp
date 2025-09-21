@@ -28,6 +28,29 @@ ShaderProgram::ShaderProgram(const std::vector<Shader*>& shaders) {
     }
 }
 
+ShaderProgram::ShaderProgram(const Shader& shader) {
+    program = glCreateProgram();
+
+    glAttachShader(program, shader.id);
+
+    glLinkProgram(program);
+
+    GLint success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (success == GL_FALSE) {
+        GLint logLength;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+
+        std::vector<GLchar> log(logLength);
+        glGetProgramInfoLog(program, logLength, nullptr, log.data());
+
+        glDeleteProgram(program);
+        throw std::runtime_error("Program linking failed:\n" + std::string(log.begin(), log.end()));
+    }
+
+    glDetachShader(program, shader.id);
+}
+
 ShaderProgram::~ShaderProgram() {
     if (program != 0) {
         glDeleteProgram(program);
@@ -36,7 +59,7 @@ ShaderProgram::~ShaderProgram() {
 
 void ShaderProgram::SetUniform1i(const std::string& name, int value) {
     GLint loc = glGetUniformLocation(program, name.c_str());
-    glProgramUniform1f(program, loc, value);
+    glProgramUniform1i(program, loc, value);
 }
 
 void ShaderProgram::SetUniform1f(const std::string& name, float value) {

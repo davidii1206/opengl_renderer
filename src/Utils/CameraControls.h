@@ -49,7 +49,7 @@ inline void processInput(Window* window, Camera* camera, float deltaTime) {
     const bool* keystate = SDL_GetKeyboardState(nullptr);
 
     // Define movement speed
-    float speed = 10.f * deltaTime;
+    float speed = 50.f * deltaTime;
 
     // Adjust speed if the left control key is pressed
     if (keystate[SDL_SCANCODE_LCTRL]) {

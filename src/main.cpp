@@ -7,6 +7,7 @@
 #include "Utils/fpscounter.h"
 #include "Utils/CameraControls.h"
 #include "Utils/Cubemap.h"
+#include "Utils/Perlin.h"
 
 #include "Renderer/OpenGL/Window/Window.h"
 #include "Renderer/OpenGL/Buffer/Buffer.h"
@@ -22,7 +23,7 @@ int main(int argc, char* argv[]) {
     window.width  = 2560;
     window.height = 1440;
     window.title  = "My OpenGL SDL3 Window";
-    window.mode   = WindowMode::Fullscreen;
+    window.mode   = WindowMode::Windowed;
     window.vsync  = false;
     window.hasFocus = true;
 
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]) {
     glm::ivec2 size = GetWindowSize(winPtr);
 
     // Camera
-    Camera camera(90.0f, winPtr->width/winPtr->height, 0.1f, 10000.0f);
+    Camera camera(110.0f, 16/10, 0.1f, 10000.0f);
 
     struct Vertex {
         glm::vec3 position;
@@ -73,7 +74,7 @@ int main(int argc, char* argv[]) {
     auto vboPtr = CreateBuffer(BufferType::Vertex, sizeof(vertices), vertices, BufferUsage::Static, 0);
     vaoPtr->ApplyLayout(vboPtr->id);
 
-    auto texPtr = CreateTexture(
+    /*auto texPtr = CreateTexture(
         "Textures/Mattheo.png",        // file path
         nullptr,                       // faces = nullptr for 2D
         TextureType::Tex2D,
@@ -84,21 +85,28 @@ int main(int argc, char* argv[]) {
         TextureFilter::Linear,              // mag filter
         TextureWrap::Repeat,                // wrap S
         TextureWrap::Repeat                 // wrap T
-    );
+    );*/
 
-    programPtr->useShaderProgram();
-    programPtr->SetUniform1i("uTexture", 0);
-    texPtr->bind(0);
+    //programPtr->useShaderProgram();
+    //glBindTextureUnit(0, texID);
+    //GLint uni = glGetUniformLocation(programPtr->program, "uTexture");
+    //glUniform1i(uni, 0);
+    //programPtr->SetUniform1i("uTexture", 0);
+    //texPtr->bind(0);
 
     // Cubemap
-    std::cout << "skrr\n";
     initCube();
 
     auto UBOcamera = CreateBuffer(BufferType::Uniform, sizeof(glm::mat4) * 2, nullptr, BufferUsage::Dynamic, 0);
+    camera.SetPosition(glm::vec3(-150, 0, 150));
+    
     bool running = true;
     Uint64 lastFrame = SDL_GetPerformanceCounter();
     HideCursor();
     SetRelativeMouseMode(winPtr, true);
+
+    // Perlin
+    initPerlin();
 
     while (running) {
         Uint64 currentFrame = SDL_GetPerformanceCounter();
@@ -119,20 +127,20 @@ int main(int argc, char* argv[]) {
 
         BeginFrame(glm::vec4{0.1f, 0.1f, 0.1f, 1.f});
 
-        // Update camera UBO
         UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetViewMatrix()), sizeof(glm::mat4));
         UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetProjectionMatrix()), sizeof(glm::mat4), sizeof(glm::mat4));
 
-        // Draw skybox first (it will be behind everything due to depth = 1.0)
-        drawCubemap();
+        //drawCubemap();
 
-        // Now draw your triangle with its own shader and VAO
-        vaoPtr->bind();  // Bind the triangle's VAO
-        programPtr->useShaderProgram();  // Use the triangle's shader
-        programPtr->SetUniform1i("uTexture", 0);
-        texPtr->bind(0);  // Bind the triangle's texture
+        vaoPtr->bind();
+        programPtr->useShaderProgram(); 
+        //programPtr->SetUniform1i("uTexture", 0);
+        //texPtr->bind(0);
+        glBindTextureUnit(0, texID);
         
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        drawPerlinSmooth();
 
         EndFrame();
 

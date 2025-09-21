@@ -10,9 +10,12 @@
 class ShaderProgram {
     public:
     ShaderProgram(const std::vector<Shader*>& shaders);
+    ShaderProgram(const Shader& shader);
     ~ShaderProgram();
 
     void useShaderProgram() const { glUseProgram(program); }
+
+    void DispatchCompute() { glDispatchCompute(groupsX, groupsY, groupsZ); };
 
     void SetUniform1i(const std::string& name, int value);
     void SetUniform1f(const std::string& name, float value);
@@ -27,8 +30,16 @@ class ShaderProgram {
 
 
     uint32_t program;
+
+    GLuint groupsX = 0;
+    GLuint groupsY = 0;
+    GLuint groupsZ = 0;
 };
 
 inline std::unique_ptr<ShaderProgram> CreateShaderProgram(const std::vector<Shader*>& shaders) {
     return std::make_unique<ShaderProgram>(shaders);
+}
+
+inline std::unique_ptr<ShaderProgram> CreateShaderProgram(const Shader& shader) {
+    return std::make_unique<ShaderProgram>(shader);
 }
