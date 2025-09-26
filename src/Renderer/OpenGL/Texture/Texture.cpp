@@ -2,7 +2,6 @@
 #include <stdexcept>
 #include <iostream>
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 Texture::Texture(
@@ -64,6 +63,108 @@ Texture::Texture(
     if (minFilter == TextureFilter::LinearMipmapLinear) {
         glGenerateTextureMipmap(id);
     }
+}
+
+// From CPU data
+Texture::Texture(
+    int width,
+    int height,
+    int depth,
+    TextureType type,
+    TextureFormat format,
+    TextureInternalFormat internalFormat,
+    const void* data,
+    GLuint unit,
+    TextureFilter minFilter,
+    TextureFilter magFilter,
+    TextureWrap wrapS,
+    TextureWrap wrapT,
+    TextureWrap wrapR
+)
+    : width(width),
+      height(height),
+      depth(depth),
+      type(type),
+      format(format),
+      internalFormat(internalFormat),
+      target(static_cast<GLenum>(type)),
+      minFilter(minFilter),
+      magFilter(magFilter),
+      wrapS(wrapS),
+      wrapT(wrapT),
+      wrapR(wrapR)
+{
+    glCreateTextures(target, 1, &id);
+
+    if (type == TextureType::Tex2D) {
+        glTextureStorage2D(id, 1, static_cast<GLenum>(internalFormat), width, height);
+        glTextureSubImage2D(id, 0, 0, 0, width, height,
+                            static_cast<GLenum>(format), GL_UNSIGNED_BYTE, data);
+    } 
+    else if (type == TextureType::Tex3D) {
+        glTextureStorage3D(id, 1, static_cast<GLenum>(internalFormat), width, height, depth);
+        glTextureSubImage3D(id, 0, 0, 0, 0, width, height, depth,
+                            static_cast<GLenum>(format), GL_UNSIGNED_BYTE, data);
+    } 
+    else if (type == TextureType::CubeMap) {
+        // Expecting 'data' to point to 6 * width * height * pixelSize bytes
+        int pixelSize = (format == TextureFormat::RGBA || format == TextureFormat::RGBA8) ? 4 : 3;
+        glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+
+        for (int i = 0; i < 6; i++) {
+            const void* faceData = static_cast<const unsigned char*>(data) + i * width * height * pixelSize;
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+                         static_cast<GLenum>(internalFormat), width, height, 0,
+                         static_cast<GLenum>(format), GL_UNSIGNED_BYTE, faceData);
+        }
+
+        applyParameters();
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        return;
+    }
+
+    applyParameters();
+    glBindTextureUnit(unit, id);
+}
+
+// Empty (for GPU writes / FBOs)
+Texture::Texture(
+    int width,
+    int height,
+    int depth,
+    TextureType type,
+    TextureInternalFormat internalFormat,
+    GLuint unit,
+    TextureFilter minFilter,
+    TextureFilter magFilter,
+    TextureWrap wrapS,
+    TextureWrap wrapT,
+    TextureWrap wrapR
+)
+    : width(width),
+      height(height),
+      depth(depth),
+      type(type),
+      format(TextureFormat::RGBA), // Default format (can refine later)
+      internalFormat(internalFormat),
+      target(static_cast<GLenum>(type)),
+      minFilter(minFilter),
+      magFilter(magFilter),
+      wrapS(wrapS),
+      wrapT(wrapT),
+      wrapR(wrapR)
+{
+    glCreateTextures(target, 1, &id);
+    std::cerr << "Created empty texture with ID: " << id << std::endl;
+
+    if (type == TextureType::Tex2D) {
+        glTextureStorage2D(id, 1, static_cast<GLenum>(internalFormat), width, height);
+    } else if (type == TextureType::Tex3D) {
+        glTextureStorage3D(id, 1, static_cast<GLenum>(internalFormat), width, height, depth);
+    }
+
+    applyParameters();
+    glBindTextureUnit(unit, id);
 }
 
 Texture::~Texture() {

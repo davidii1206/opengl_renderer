@@ -42,7 +42,7 @@ static std::vector<std::string> faces = {
 };
 
 // Struct for cube vertices
-struct Vertex {
+struct CubemapVertex {
     glm::vec3 position;
 };
 
@@ -59,8 +59,8 @@ inline void initCube() {
     std::cout << "Initializing cube...\n";
     // Vertex description
     VertexDescription cubeDesc;
-    cubeDesc.stride = sizeof(Vertex);
-    cubeDesc.attributes = {{0, 3, GL_FLOAT, offsetof(Vertex, position), false}};
+    cubeDesc.stride = sizeof(CubemapVertex);
+    cubeDesc.attributes = {{0, 3, GL_FLOAT, offsetof(CubemapVertex, position), false}};
 
     std::cout << "skrr\n";
 
@@ -77,7 +77,7 @@ inline void initCube() {
 
     // Create cubemap texture
     // IMPORTANT: Use RGB format for JPEG images (not RGBA)
-    cubemapTexture = CreateTexture(
+    cubemapTexture = CreateTextureFromFile(
         "",                                    // empty source for cubemap
         &faces,                               // pass faces vector
         TextureType::CubeMap,                 // cubemap type
@@ -116,7 +116,7 @@ inline void drawCubemap() {
     
     // Set the cubemap texture uniform
     cubemapShader->SetUniform1i("uCubemap", 0);
-    cubemapTexture->bind(0);
+    cubemapTexture->BindTextureForSampling(0);
     
     // Draw the skybox
     glDrawArrays(GL_TRIANGLES, 0, 36);

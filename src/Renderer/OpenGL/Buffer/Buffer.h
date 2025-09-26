@@ -20,6 +20,7 @@ public:
     void* MapBuffer(GLenum access);
     void UnmapBuffer();
     void ReadBuffer(void* outData, size_t size, size_t offset = 0);
+    void bind() { glBindBuffer(target, id); };
 
     GLuint id = 0;
     GLuint bindingPoint = 0;

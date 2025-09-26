@@ -5,6 +5,10 @@
 #include <vector>
 #include <glad/glad.h>
 
+#ifdef _WIN32
+#undef CreateWindow
+#endif
+
 enum class WindowMode { Windowed, Borderless, Fullscreen };
 
 struct Window {

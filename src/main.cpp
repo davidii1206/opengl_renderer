@@ -3,25 +3,20 @@
 #include <glad/glad.h>
 #include <iostream>
 #include <memory>
+#include <spdlog/spdlog.h>
 
 #include "Utils/fpscounter.h"
 #include "Utils/CameraControls.h"
 #include "Utils/Cubemap.h"
 #include "Utils/Perlin.h"
 
-#include "Renderer/OpenGL/Window/Window.h"
-#include "Renderer/OpenGL/Buffer/Buffer.h"
-#include "Renderer/OpenGL/Vertex/VertexArray.h"
-#include "Renderer/OpenGL/Shader/Shader.h"
-#include "Renderer/OpenGL/Shader/ShaderProgram.h"
-#include "Renderer/OpenGL/Camera/Camera.h"
-#include "Renderer/OpenGL/Texture/Texture.h"
+#include "Renderer/OpenGL/Renderer.h"
 
 int main(int argc, char* argv[]) {
 
     // Setup window parameters
-    window.width  = 2560;
-    window.height = 1440;
+    window.width  = 1920;
+    window.height = 1080;
     window.title  = "My OpenGL SDL3 Window";
     window.mode   = WindowMode::Windowed;
     window.vsync  = false;
@@ -44,7 +39,7 @@ int main(int argc, char* argv[]) {
     glm::ivec2 size = GetWindowSize(winPtr);
 
     // Camera
-    Camera camera(110.0f, 16/10, 0.1f, 10000.0f);
+    Camera camera(110.0f, 16.0f/9.0f, 0.1f, 10000.0f);
 
     struct Vertex {
         glm::vec3 position;
@@ -74,31 +69,12 @@ int main(int argc, char* argv[]) {
     auto vboPtr = CreateBuffer(BufferType::Vertex, sizeof(vertices), vertices, BufferUsage::Static, 0);
     vaoPtr->ApplyLayout(vboPtr->id);
 
-    /*auto texPtr = CreateTexture(
-        "Textures/Mattheo.png",        // file path
-        nullptr,                       // faces = nullptr for 2D
-        TextureType::Tex2D,
-        TextureFormat::RGBA,
-        TextureInternalFormat::RGBA8,
-        0,                             // bind to texture unit 0
-        TextureFilter::LinearMipmapLinear,  // min filter
-        TextureFilter::Linear,              // mag filter
-        TextureWrap::Repeat,                // wrap S
-        TextureWrap::Repeat                 // wrap T
-    );*/
-
-    //programPtr->useShaderProgram();
-    //glBindTextureUnit(0, texID);
-    //GLint uni = glGetUniformLocation(programPtr->program, "uTexture");
-    //glUniform1i(uni, 0);
-    //programPtr->SetUniform1i("uTexture", 0);
-    //texPtr->bind(0);
-
-    // Cubemap
-    initCube();
+    auto fboVert = CreateShader(ShaderStage::Vertex, "Shader/fbo.vert.glsl");
+    auto fboFrag = CreateShader(ShaderStage::Fragment, "Shader/fbo.frag.glsl");
+    auto fboProgram = CreateShaderProgram({fboVert.get(), fboFrag.get()});
+    auto FBO = CreateFramebuffer(*fboProgram);
 
     auto UBOcamera = CreateBuffer(BufferType::Uniform, sizeof(glm::mat4) * 2, nullptr, BufferUsage::Dynamic, 0);
-    camera.SetPosition(glm::vec3(-150, 0, 150));
     
     bool running = true;
     Uint64 lastFrame = SDL_GetPerformanceCounter();
@@ -107,6 +83,12 @@ int main(int argc, char* argv[]) {
 
     // Perlin
     initPerlin();
+
+    auto model = CreateModel("Models/grabstein_2.glb");
+    auto modelVertShader = CreateShader(ShaderStage::Vertex, "Shader/model.vert.glsl");
+    auto modelFragShader = CreateShader(ShaderStage::Fragment, "Shader/model.frag.glsl");
+    auto modelProgram = CreateShaderProgram({modelVertShader.get(), modelFragShader.get()});
+    model->SetShaderForAllMaterials(std::shared_ptr<ShaderProgram>(modelProgram.release()));
 
     while (running) {
         Uint64 currentFrame = SDL_GetPerformanceCounter();
@@ -127,20 +109,20 @@ int main(int argc, char* argv[]) {
 
         BeginFrame(glm::vec4{0.1f, 0.1f, 0.1f, 1.f});
 
+        FBO->BindFramebuffer(FBO->id);
+
+        // Update camera UBO
         UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetViewMatrix()), sizeof(glm::mat4));
         UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetProjectionMatrix()), sizeof(glm::mat4), sizeof(glm::mat4));
 
-        //drawCubemap();
-
+        // Draw triangle (optional - you can remove this)
         vaoPtr->bind();
         programPtr->useShaderProgram(); 
-        //programPtr->SetUniform1i("uTexture", 0);
-        //texPtr->bind(0);
-        glBindTextureUnit(0, texID);
-        
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        drawPerlinSmooth();
+        model->Draw();
+
+        FBO->UnbindFramebuffer(FBO->id);
 
         EndFrame();
 
