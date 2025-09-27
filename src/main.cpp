@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
 
     initPerlin();
 
-    auto model = CreateModel("Models/grabstein_2.glb");
+    auto model = CreateModel("Models/dark_souls_final.glb");
     auto modelVertShader = CreateShader(ShaderStage::Vertex, "Shader/model.vert.glsl");
     auto modelFragShader = CreateShader(ShaderStage::Fragment, "Shader/model.frag.glsl");
     auto modelProgram = CreateShaderProgram({modelVertShader.get(), modelFragShader.get()});
