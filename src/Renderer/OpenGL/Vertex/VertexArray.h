@@ -9,11 +9,9 @@ class VertexArray {
         VertexArray();
         ~VertexArray();
 
-       // Delete copy
         VertexArray(const VertexArray&) = delete;
         VertexArray& operator=(const VertexArray&) = delete;
 
-        // Implement move
         VertexArray(VertexArray&& other) noexcept;
         VertexArray& operator=(VertexArray&& other) noexcept;
 

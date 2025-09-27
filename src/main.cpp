@@ -14,7 +14,6 @@
 
 int main(int argc, char* argv[]) {
 
-    // Setup window parameters
     window.width  = 1920;
     window.height = 1080;
     window.title  = "My OpenGL SDL3 Window";
@@ -22,10 +21,8 @@ int main(int argc, char* argv[]) {
     window.vsync  = false;
     window.hasFocus = true;
 
-    // Create the window
     Window* winPtr = CreateWindow(window);
 
-    // Load OpenGL functions with glad
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         std::cerr << "Failed to initialize OpenGL context!" << std::endl;
         DestroyWindow(winPtr);
@@ -35,7 +32,6 @@ int main(int argc, char* argv[]) {
     OpenGLSettings glSettings;
     glSettings.Apply();
 
-    // Set viewport
     glm::ivec2 size = GetWindowSize(winPtr);
 
     // Camera
@@ -49,15 +45,14 @@ int main(int argc, char* argv[]) {
     VertexDescription VertexDesc;
     VertexDesc.stride = sizeof(Vertex);
     VertexDesc.attributes = {
-        {0, 3, GL_FLOAT, offsetof(Vertex, position), false}, // position
-        {1, 2, GL_FLOAT, offsetof(Vertex, texCoord), false}  // texCoords
+        {0, 3, GL_FLOAT, offsetof(Vertex, position), false},
+        {1, 2, GL_FLOAT, offsetof(Vertex, texCoord), false}  
     };
 
     float vertices[] = {
-        // positions        // texCoords
-        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, // bottom-left
-        0.5f, -0.5f, 0.0f,  1.0f, 0.0f, // bottom-right
-        0.0f,  0.5f, 0.0f,  0.5f, 1.0f  // top-center
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 
+        0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+        0.0f,  0.5f, 0.0f,  0.5f, 1.0f  
     };
 
     auto vertPtr = CreateShader(ShaderStage::Vertex, "Shader/vert.glsl");
@@ -81,7 +76,6 @@ int main(int argc, char* argv[]) {
     HideCursor();
     SetRelativeMouseMode(winPtr, true);
 
-    // Perlin
     initPerlin();
 
     auto model = CreateModel("Models/grabstein_2.glb");
@@ -111,11 +105,9 @@ int main(int argc, char* argv[]) {
 
         FBO->BindFramebuffer(FBO->id);
 
-        // Update camera UBO
         UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetViewMatrix()), sizeof(glm::mat4));
         UBOcamera->UpdateBuffer(glm::value_ptr(camera.GetProjectionMatrix()), sizeof(glm::mat4), sizeof(glm::mat4));
 
-        // Draw triangle (optional - you can remove this)
         vaoPtr->bind();
         programPtr->useShaderProgram(); 
         glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -129,7 +121,6 @@ int main(int argc, char* argv[]) {
         fps_counter();
     }
 
-    // Cleanup
     DestroyWindow(winPtr);
 
     return 0;

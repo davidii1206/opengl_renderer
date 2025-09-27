@@ -55,7 +55,6 @@ enum class TextureAccess : GLenum {
 
 class Texture {
     public:
-        // From file
         Texture(
             const std::string& source,
             const std::vector<std::string>* faces = nullptr,
@@ -70,12 +69,11 @@ class Texture {
             TextureWrap wrapR = TextureWrap::Repeat
         );
 
-        // From raw CPU data
-        // From CPU data (supports 2D and 3D)
+
         Texture(
             int width,
             int height,
-            int depth,                  // <--- add this
+            int depth,                
             TextureType type,
             TextureFormat format,
             TextureInternalFormat internalFormat,
@@ -88,7 +86,6 @@ class Texture {
             TextureWrap wrapR = TextureWrap::Repeat
         );
 
-        // Empty
         Texture(
             int width,
             int height,
@@ -134,7 +131,6 @@ class Texture {
         void loadCubeMap(const std::vector<std::string>& faces);
 };
 
-// From file
 inline std::unique_ptr<Texture> CreateTextureFromFile(
     const std::string& source,
     const std::vector<std::string>* faces = nullptr,
@@ -152,9 +148,8 @@ inline std::unique_ptr<Texture> CreateTextureFromFile(
                                      minFilter, magFilter, wrapS, wrapT, wrapR);
 }
 
-// From CPU data (2D, 3D, CubeMap)
 inline std::unique_ptr<Texture> CreateTextureFromData(
-    int width, int height, int depth,              // depth is 1 for 2D or CubeMap
+    int width, int height, int depth,     
     TextureType type,
     TextureFormat format,
     TextureInternalFormat internalFormat,
@@ -177,7 +172,6 @@ inline std::unique_ptr<Texture> CreateTextureFromData(
     );
 }
 
-// Empty
 inline std::unique_ptr<Texture> CreateEmptyTexture(
     int width, int height, int depth,
     TextureType type,

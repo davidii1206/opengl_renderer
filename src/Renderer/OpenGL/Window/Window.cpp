@@ -8,9 +8,6 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_opengl3.h>
 
-// ------------------------
-// Core functions
-// ------------------------
 
 Window* CreateWindow(Window& win) {
     // Initialize SDL (video subsystem)
@@ -19,14 +16,12 @@ Window* CreateWindow(Window& win) {
         return nullptr;
     }
 
-    // Set OpenGL attributes
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    // Determine SDL window flags
     Uint32 flags = SDL_WINDOW_OPENGL;
     if (win.mode == WindowMode::Fullscreen) {
         flags |= SDL_WINDOW_FULLSCREEN;
@@ -34,9 +29,7 @@ Window* CreateWindow(Window& win) {
     else if (win.mode == WindowMode::Borderless) {
         flags |= SDL_WINDOW_BORDERLESS;
     }
-    // Windowed mode: no extra flags needed
 
-    // Create SDL window
     win.handle = SDL_CreateWindow(
         win.title.c_str(),
         win.width,
@@ -49,7 +42,6 @@ Window* CreateWindow(Window& win) {
         return nullptr;
     }
 
-    // Create OpenGL context
     win.context = SDL_GL_CreateContext(win.handle);
     if (!win.context) {
         std::cerr << "[Window] SDL_GL_CreateContext Error: " << SDL_GetError() << std::endl;
@@ -58,7 +50,6 @@ Window* CreateWindow(Window& win) {
         return nullptr;
     }
 
-    // Set VSync
     SDL_GL_SetSwapInterval(win.vsync ? 1 : 0);
 
     win.hasFocus = true;
@@ -204,32 +195,14 @@ void EndFrameImGui() {
     //rest to be added
 }
 
-void BeginRenderPass(RenderPass& fbo, const glm::vec4& clearColor) {
-    glGenFramebuffers(1, &fbo.framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo.framebuffer);
-
-    GLbitfield mask = 0;
-    if (fbo.clearColorBuffer) mask |= GL_COLOR_BUFFER_BIT;
-    if (fbo.clearDepthBuffer) mask |= GL_DEPTH_BUFFER_BIT;
-
-    glClearColor(fbo.clearColor.r, fbo.clearColor.g, fbo.clearColor.b, fbo.clearColor.a);
-    glClear(mask);
-}
-
-void EndRenderPass() {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void TakeScreenshot() {
     int width = s_CurrentWindow.width;
     int height = s_CurrentWindow.height;
 
     std::vector<unsigned char> pixels(width * height * 4);
 
-    // Read pixels from OpenGL
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 
-    // Flip the image vertically (OpenGL is bottom-left origin, SDL is top-left)
     for (int y = 0; y < height / 2; ++y) {
         int top = y * width * 4;
         int bottom = (height - 1 - y) * width * 4;
@@ -238,7 +211,6 @@ void TakeScreenshot() {
         }
     }
 
-    // Wrap pixel buffer into an SDL surface
     SDL_Surface* surface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, pixels.data(), width * 4);
 
 

@@ -29,7 +29,7 @@ uniform vec3 u_lightDirection = vec3(-1.0, -1.0, -1.0);
 uniform vec3 u_lightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 u_cameraPosition;
 
-// Texture availability flags (set by material system)
+// Texture availability flags
 uniform bool u_hasBaseColorTexture = false;
 uniform bool u_hasMetallicRoughnessTexture = false;
 uniform bool u_hasNormalTexture = false;
@@ -94,8 +94,8 @@ void main() {
     float roughness = u_roughnessFactor;
     if (u_hasMetallicRoughnessTexture) {
         vec3 mr = texture(u_metallicRoughnessTexture, TexCoords).rgb;
-        metallic *= mr.b; // Blue channel
-        roughness *= mr.g; // Green channel
+        metallic *= mr.b;
+        roughness *= mr.g;
     }
     
     vec3 emissive = u_emissiveFactor;
@@ -115,11 +115,9 @@ void main() {
     vec3 L = normalize(-u_lightDirection);
     vec3 H = normalize(V + L);
     
-    // Calculate reflectance
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, baseColor.rgb, metallic);
     
-    // Cook-Torrance BRDF
     float NDF = distributionGGX(N, H, roughness);
     float G = geometrySmith(N, V, L, roughness);
     vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
@@ -135,15 +133,12 @@ void main() {
     float NdotL = max(dot(N, L), 0.0);
     vec3 Lo = (kD * baseColor.rgb / 3.14159265359 + specular) * u_lightColor * NdotL;
     
-    // Ambient lighting (very basic)
     vec3 ambient = vec3(0.4) * baseColor.rgb * occlusion;
     
     vec3 color = ambient + Lo + emissive;
     
-    // HDR tonemapping (simple Reinhard)
     color = color / (color + vec3(1.0));
     
-    // Gamma correction
     color = pow(color, vec3(1.0/2.2));
     
     FragColor = vec4(color, baseColor.a);

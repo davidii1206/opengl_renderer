@@ -11,12 +11,10 @@ VertexArray::~VertexArray() {
 }
 
 void VertexArray::ApplyLayout(GLuint vertexBufferID, GLuint bindingIndex, GLintptr offset) const {
-    // Bind the buffer to the VAO at bindingIndex with the vertex stride
     glVertexArrayVertexBuffer(id, bindingIndex, vertexBufferID, offset, desc.stride);
 
-    // Loop through each attribute and set it up
     for (const auto& attrib : desc.attributes) {
-        // Enable the attribute in this VAO
+
         glEnableVertexArrayAttrib(id, attrib.index);
 
 

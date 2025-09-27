@@ -33,7 +33,6 @@ struct OpenGLSettings {
     GLenum blendSrc = GL_SRC_ALPHA;
     GLenum blendDst = GL_ONE_MINUS_SRC_ALPHA;
 
-    // Apply the settings to OpenGL
     void Apply() const {
         if (depthTest) {
             glEnable(GL_DEPTH_TEST);
@@ -64,17 +63,6 @@ inline Window s_CurrentWindow;
 
 inline bool screenshotRequested = false;
 
-// TEMPORARY !!!!!!!!!!!!
-struct RenderPass {
-    GLuint framebuffer;
-    glm::vec4 clearColor;
-    bool clearColorBuffer;
-    bool clearDepthBuffer;
-};
-
-// ------------------------
-// Core functions
-// ------------------------
 
 Window* CreateWindow(Window& win);
 void    DestroyWindow(Window* win);
@@ -89,30 +77,18 @@ std::vector<SDL_Event> PollEvents();
 bool    WindowHasFocus(const Window* win);
 glm::ivec2 GetWindowSize(const Window* win);
 
-// ------------------------------------------
-// Input
-// ------------------------------------------
+
 glm::vec2 GetMousePos();
 void      SetMousePos(Window* win, float x, float y);
 void      HideCursor();
 void      ShowCursor();
 void      SetRelativeMouseMode(Window* win, bool enabled);
 
-// ------------------------------------------
-// Frame Lifecycle
-// ------------------------------------------
 void BeginFrame(const glm::vec4& clearColor = {0,0,0,1});
 void EndFrame();
 
 void BeginFrameImGui(Window* win, const glm::vec4& clearColor = {0,0,0,1});
 void EndFrameImGui();
 
-// Multiple framebuffer targets
-void BeginRenderPass(RenderPass& fbo, const glm::vec4& clearColor);
-void EndRenderPass();
-
-// ------------------------------------------
-// Utilities
-// ------------------------------------------
 void TakeScreenshot();
 void AppendScreenshot();

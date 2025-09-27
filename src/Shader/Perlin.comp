@@ -1,17 +1,14 @@
 #version 460 core
 layout (local_size_x = 16, local_size_y = 16) in;
 
-// Output texture (writeonly)
 layout (rgba8, binding = 1) uniform writeonly image2D uOutput;
 
-// Uniforms for controlling the noise
 uniform float uTime;
 uniform float uScale;
 uniform int uOctaves;
 uniform float uPersistence;
 uniform float uLacunarity;
 
-// Permutation table for Perlin noise
 const int permutation[256] = int[](
     151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225,
     140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148,
@@ -31,17 +28,14 @@ const int permutation[256] = int[](
     222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180
 );
 
-// Hash function using the permutation table
 int hash(int x) {
     return permutation[x & 255];
 }
 
-// 2D hash function
 int hash2D(int x, int y) {
     return hash(x + hash(y));
 }
 
-// Gradient vectors for 2D Perlin noise
 vec2 gradient(int hash) {
     switch (hash & 3) {
         case 0: return vec2(1.0, 1.0);
@@ -52,17 +46,14 @@ vec2 gradient(int hash) {
     }
 }
 
-// Smooth interpolation function (quintic)
 float fade(float t) {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-// Linear interpolation
 float lerp(float a, float b, float t) {
     return a + t * (b - a);
 }
 
-// Dot product of gradient and distance vectors
 float dotGridGradient(int ix, int iy, float x, float y) {
     vec2 grad = gradient(hash2D(ix, iy));
     float dx = x - float(ix);
@@ -70,19 +61,16 @@ float dotGridGradient(int ix, int iy, float x, float y) {
     return dx * grad.x + dy * grad.y;
 }
 
-// Single octave of Perlin noise
 float perlinNoise(float x, float y) {
-    // Grid cell coordinates
+
     int x0 = int(floor(x));
     int x1 = x0 + 1;
     int y0 = int(floor(y));
     int y1 = y0 + 1;
     
-    // Interpolation weights
     float sx = fade(x - float(x0));
     float sy = fade(y - float(y0));
-    
-    // Calculate dot products at grid corners
+
     float n0 = dotGridGradient(x0, y0, x, y);
     float n1 = dotGridGradient(x1, y0, x, y);
     float ix0 = lerp(n0, n1, sx);
@@ -94,26 +82,21 @@ float perlinNoise(float x, float y) {
     return lerp(ix0, ix1, sy);
 }
 
-// SEAMLESS/TILEABLE Perlin noise using domain repetition
 float seamlessPerlinNoise(float x, float y, float repeatX, float repeatY) {
-    // Sample noise at 4 positions to create seamless tiling
     float noise1 = perlinNoise(x, y);
     float noise2 = perlinNoise(x - repeatX, y);
     float noise3 = perlinNoise(x, y - repeatY);
     float noise4 = perlinNoise(x - repeatX, y - repeatY);
     
-    // Calculate blend weights based on position
     float blendX = fade(x / repeatX);
     float blendY = fade(y / repeatY);
-    
-    // Blend the noise values to create seamless transitions
+
     float i1 = lerp(noise1, noise2, blendX);
     float i2 = lerp(noise3, noise4, blendX);
     
     return lerp(i1, i2, blendY);
 }
 
-// Seamless fractal Brownian Motion
 float seamlessFBM(float x, float y, float repeatX, float repeatY, int octaves, float persistence, float lacunarity) {
     float value = 0.0;
     float amplitude = 1.0;
@@ -129,7 +112,6 @@ float seamlessFBM(float x, float y, float repeatX, float repeatY, int octaves, f
         amplitude *= persistence;
         frequency *= lacunarity;
         
-        // Scale repeat values for each octave
         currentRepeatX *= lacunarity;
         currentRepeatY *= lacunarity;
     }
@@ -140,51 +122,21 @@ float seamlessFBM(float x, float y, float repeatX, float repeatY, int octaves, f
 void main() {
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 imageSize = imageSize(uOutput);
-    
-    // Normalize coordinates to [0, 1]
+
     vec2 uv = vec2(texelCoord) / vec2(imageSize);
-    
-    // Scale coordinates for noise frequency
+
     vec2 noiseCoord = uv * uScale;
-    
-    // Add time for animation
+
     noiseCoord += uTime * 0.1;
     
-    // CRITICAL: Use seamless noise generation!
-    // The repeat values should match your texture scaling
     float repeatX = uScale;
     float repeatY = uScale;
     
     float noise = seamlessFBM(noiseCoord.x, noiseCoord.y, repeatX, repeatY, uOctaves, uPersistence, uLacunarity);
-    
-    // Normalize noise from [-1, 1] to [0, 1]
+
     noise = (noise + 1.0) * 0.5;
     
-    // Create grayscale color from noise
     vec4 color = vec4(vec3(noise), 1.0);
-    
-    // Write to output image
+
     imageStore(uOutput, texelCoord, color);
 }
-
-// Alternative: Simpler seamless method using modular arithmetic
-/*
-float simpleSeamlessNoise(float x, float y, float period) {
-    float x1 = mod(x, period);
-    float y1 = mod(y, period);
-    float x2 = mod(x1 + period, period);
-    float y2 = mod(y1 + period, period);
-    
-    float n1 = perlinNoise(x1, y1);
-    float n2 = perlinNoise(x2, y1);
-    float n3 = perlinNoise(x1, y2);
-    float n4 = perlinNoise(x2, y2);
-    
-    float fx = fade(x1 / period);
-    float fy = fade(y1 / period);
-    
-    float i1 = lerp(n1, n2, fx);
-    float i2 = lerp(n3, n4, fx);
-    return lerp(i1, i2, fy);
-}
-*/

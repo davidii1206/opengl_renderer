@@ -28,7 +28,7 @@ class Framebuffer {
         void CreateFramebufferTex();
         void DrawFramebuffer();
 
-        ShaderProgram& fboShaderProgram;  // Store reference to shader program
+        ShaderProgram& fboShaderProgram;
         std::unique_ptr<VertexArray> vaoFBO;
         std::unique_ptr<Buffer> vboFBO;
         std::unique_ptr<Buffer> eboFBO;

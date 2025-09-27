@@ -76,12 +76,10 @@ bool Model::LoadModel(const std::string& filepath) {
     spdlog::info("  Textures: {}", m_gltfModel.textures.size());
     spdlog::info("  Images: {}", m_gltfModel.images.size());
 
-    // Load materials first
     for (const auto& gltfMaterial : m_gltfModel.materials) {
         m_materials.push_back(ProcessMaterial(gltfMaterial));
     }
 
-    // Load meshes
     for (const auto& gltfMesh : m_gltfModel.meshes) {
         auto mesh = ProcessMesh(gltfMesh);
         if (mesh) {
@@ -89,7 +87,6 @@ bool Model::LoadModel(const std::string& filepath) {
         }
     }
 
-    // Process scene hierarchy
     m_rootNode = std::make_unique<ModelNode>();
     if (!m_gltfModel.scenes.empty()) {
         const auto& scene = m_gltfModel.scenes[m_gltfModel.defaultScene >= 0 ? m_gltfModel.defaultScene : 0];
@@ -107,13 +104,11 @@ bool Model::LoadModel(const std::string& filepath) {
 void Model::ProcessNode(const tinygltf::Node& gltfNode, ModelNode& node) {
     node.name = gltfNode.name;
     node.transform = GetNodeTransform(gltfNode);
-    
-    // Add mesh indices
+
     if (gltfNode.mesh >= 0) {
         node.meshIndices.push_back(gltfNode.mesh);
     }
 
-    // Process children
     for (int childIndex : gltfNode.children) {
         auto childNode = std::make_unique<ModelNode>();
         ProcessNode(m_gltfModel.nodes[childIndex], *childNode);
@@ -125,13 +120,11 @@ std::unique_ptr<Mesh> Model::ProcessMesh(const tinygltf::Mesh& gltfMesh) {
     std::vector<Vertex3D> vertices;
     std::vector<uint32_t> indices;
     
-    // Process all primitives and combine into one mesh
     for (const auto& primitive : gltfMesh.primitives) {
         size_t vertexOffset = vertices.size();
         
         ExtractVertexData(primitive, vertices, indices);
         
-        // Create submesh for this primitive
         size_t indexCount = indices.size() - (vertexOffset > 0 ? m_meshes.empty() ? 0 : 
                           m_meshes.back()->GetIndexCount() : 0);
     }
@@ -143,19 +136,16 @@ std::unique_ptr<Mesh> Model::ProcessMesh(const tinygltf::Mesh& gltfMesh) {
 
     auto mesh = CreateMesh(vertices, indices);
     
-    // Add submeshes with materials
     size_t indexOffset = 0;
     for (size_t i = 0; i < gltfMesh.primitives.size(); ++i) {
         const auto& primitive = gltfMesh.primitives[i];
-        
-        // Get index count for this primitive
+
         size_t indexCount = 0;
         if (primitive.indices >= 0) {
             const auto& accessor = m_gltfModel.accessors[primitive.indices];
             indexCount = accessor.count;
         }
         
-        // Get material
         std::shared_ptr<Material> material = nullptr;
         if (primitive.material >= 0 && primitive.material < m_materials.size()) {
             material = m_materials[primitive.material];
@@ -165,7 +155,6 @@ std::unique_ptr<Mesh> Model::ProcessMesh(const tinygltf::Mesh& gltfMesh) {
         indexOffset += indexCount;
     }
 
-    // Calculate tangents if the mesh has texture coordinates
     mesh->CalculateTangents();
     
     return mesh;
@@ -174,7 +163,6 @@ std::unique_ptr<Mesh> Model::ProcessMesh(const tinygltf::Mesh& gltfMesh) {
 std::shared_ptr<Material> Model::ProcessMaterial(const tinygltf::Material& gltfMaterial) {
     auto material = CreateMaterial(gltfMaterial.name.empty() ? "Unnamed" : gltfMaterial.name);
 
-    // PBR Metallic Roughness
     if (gltfMaterial.pbrMetallicRoughness.baseColorFactor.size() == 4) {
         material->SetBaseColor(glm::vec4(
             gltfMaterial.pbrMetallicRoughness.baseColorFactor[0],
@@ -187,7 +175,6 @@ std::shared_ptr<Material> Model::ProcessMaterial(const tinygltf::Material& gltfM
     material->SetMetallicFactor(gltfMaterial.pbrMetallicRoughness.metallicFactor);
     material->SetRoughnessFactor(gltfMaterial.pbrMetallicRoughness.roughnessFactor);
 
-    // Base color texture
     if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index >= 0) {
         auto texture = LoadTextureFromGLTF(gltfMaterial.pbrMetallicRoughness.baseColorTexture.index);
         if (texture) {
@@ -195,7 +182,6 @@ std::shared_ptr<Material> Model::ProcessMaterial(const tinygltf::Material& gltfM
         }
     }
 
-    // Metallic roughness texture
     if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index >= 0) {
         auto texture = LoadTextureFromGLTF(gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index);
         if (texture) {
@@ -203,7 +189,6 @@ std::shared_ptr<Material> Model::ProcessMaterial(const tinygltf::Material& gltfM
         }
     }
 
-    // Normal texture
     if (gltfMaterial.normalTexture.index >= 0) {
         auto texture = LoadTextureFromGLTF(gltfMaterial.normalTexture.index);
         if (texture) {
@@ -212,7 +197,6 @@ std::shared_ptr<Material> Model::ProcessMaterial(const tinygltf::Material& gltfM
         }
     }
 
-    // Emissive
     if (gltfMaterial.emissiveFactor.size() == 3) {
         material->SetEmissiveFactor(glm::vec3(
             gltfMaterial.emissiveFactor[0],
@@ -228,7 +212,6 @@ std::shared_ptr<Material> Model::ProcessMaterial(const tinygltf::Material& gltfM
         }
     }
 
-    // Occlusion texture
     if (gltfMaterial.occlusionTexture.index >= 0) {
         auto texture = LoadTextureFromGLTF(gltfMaterial.occlusionTexture.index);
         if (texture) {
@@ -245,7 +228,6 @@ std::shared_ptr<Texture> Model::LoadTextureFromGLTF(int textureIndex) {
         return nullptr;
     }
 
-    // Check cache first
     auto cacheIt = m_textureCache.find(textureIndex);
     if (cacheIt != m_textureCache.end()) {
         return cacheIt->second;
@@ -262,7 +244,6 @@ std::shared_ptr<Texture> Model::LoadTextureFromGLTF(int textureIndex) {
         std::shared_ptr<Texture> texture;
         
         if (!image.image.empty()) {
-            // Image data is embedded
             texture = CreateTextureFromData(
                 image.width, image.height, 1,
                 TextureType::Tex2D,
@@ -271,18 +252,14 @@ std::shared_ptr<Texture> Model::LoadTextureFromGLTF(int textureIndex) {
                 image.image.data()
             );
         } else if (!image.uri.empty()) {
-            // External image file
             std::filesystem::path modelPath(m_filepath);
             std::string texturePath = (modelPath.parent_path() / image.uri).string();
             texture = CreateTextureFromFile(texturePath);
         }
 
         if (texture) {
-            // Apply sampler settings if available
             if (gltfTexture.sampler >= 0 && gltfTexture.sampler < m_gltfModel.samplers.size()) {
                 const auto& sampler = m_gltfModel.samplers[gltfTexture.sampler];
-                
-                // Set filtering
                 if (sampler.minFilter == TINYGLTF_TEXTURE_FILTER_NEAREST) {
                     texture->minFilter = TextureFilter::Nearest;
                 } else if (sampler.minFilter == TINYGLTF_TEXTURE_FILTER_LINEAR) {
@@ -294,8 +271,7 @@ std::shared_ptr<Texture> Model::LoadTextureFromGLTF(int textureIndex) {
                 } else if (sampler.magFilter == TINYGLTF_TEXTURE_FILTER_LINEAR) {
                     texture->magFilter = TextureFilter::Linear;
                 }
-                
-                // Set wrapping
+
                 if (sampler.wrapS == TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE) {
                     texture->wrapS = TextureWrap::ClampToEdge;
                 } else if (sampler.wrapS == TINYGLTF_TEXTURE_WRAP_REPEAT) {
@@ -326,10 +302,8 @@ glm::mat4 Model::GetNodeTransform(const tinygltf::Node& node) {
     glm::mat4 transform(1.0f);
     
     if (node.matrix.size() == 16) {
-        // Matrix is provided directly
         transform = glm::make_mat4(node.matrix.data());
     } else {
-        // Compose from T, R, S
         if (node.translation.size() == 3) {
             transform = glm::translate(transform, glm::vec3(
                 node.translation[0], node.translation[1], node.translation[2]
@@ -358,8 +332,7 @@ void Model::ExtractVertexData(const tinygltf::Primitive& primitive,
                               std::vector<uint32_t>& indices) {
     
     size_t vertexStart = vertices.size();
-    
-    // Get vertex count from position attribute
+
     size_t vertexCount = 0;
     auto posIt = primitive.attributes.find("POSITION");
     if (posIt != primitive.attributes.end()) {
@@ -368,7 +341,6 @@ void Model::ExtractVertexData(const tinygltf::Primitive& primitive,
         vertices.resize(vertexStart + vertexCount);
     }
     
-    // Extract positions
     if (posIt != primitive.attributes.end()) {
         const auto& accessor = m_gltfModel.accessors[posIt->second];
         const auto& bufferView = m_gltfModel.bufferViews[accessor.bufferView];
@@ -386,7 +358,6 @@ void Model::ExtractVertexData(const tinygltf::Primitive& primitive,
         }
     }
     
-    // Extract normals
     auto normIt = primitive.attributes.find("NORMAL");
     if (normIt != primitive.attributes.end()) {
         const auto& accessor = m_gltfModel.accessors[normIt->second];
@@ -403,8 +374,7 @@ void Model::ExtractVertexData(const tinygltf::Primitive& primitive,
             );
         }
     }
-    
-    // Extract texture coordinates
+
     auto texIt = primitive.attributes.find("TEXCOORD_0");
     if (texIt != primitive.attributes.end()) {
         const auto& accessor = m_gltfModel.accessors[texIt->second];
@@ -422,7 +392,6 @@ void Model::ExtractVertexData(const tinygltf::Primitive& primitive,
         }
     }
     
-    // Extract indices
     if (primitive.indices >= 0) {
         const auto& accessor = m_gltfModel.accessors[primitive.indices];
         const auto& bufferView = m_gltfModel.bufferViews[accessor.bufferView];
@@ -475,13 +444,10 @@ void Model::Draw(const glm::mat4& modelMatrix) const {
 void Model::DrawNode(const ModelNode& node, const glm::mat4& parentTransform) const {
     glm::mat4 nodeTransform = parentTransform * node.transform;
     
-    // Draw meshes associated with this node
     for (int meshIndex : node.meshIndices) {
         if (meshIndex >= 0 && meshIndex < m_meshes.size()) {
-            // Set model matrix in shader if available
             const auto& mesh = m_meshes[meshIndex];
             
-            // Try to get material from first submesh or default material
             std::shared_ptr<Material> material = nullptr;
             if (!mesh->m_subMeshes.empty() && mesh->m_subMeshes[0].material) {
                 material = mesh->m_subMeshes[0].material;
@@ -497,7 +463,6 @@ void Model::DrawNode(const ModelNode& node, const glm::mat4& parentTransform) co
         }
     }
     
-    // Recursively draw child nodes
     for (const auto& child : node.children) {
         DrawNode(*child, nodeTransform);
     }
@@ -508,7 +473,6 @@ void Model::SetShaderForAllMaterials(std::shared_ptr<ShaderProgram> shader) {
         material->SetShader(shader);
     }
     
-    // Also set for default materials in meshes
     for (auto& mesh : m_meshes) {
         if (auto defaultMat = mesh->GetDefaultMaterial()) {
             defaultMat->SetShader(shader);

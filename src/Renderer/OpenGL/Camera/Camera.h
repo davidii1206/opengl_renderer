@@ -8,7 +8,7 @@ public:
     Camera(float fov, float aspectRatio, float nearClip, float farClip);
 
     void SetPosition(const glm::vec3& position);
-    void SetRotation(const glm::vec2& rotation); // pitch + yaw
+    void SetRotation(const glm::vec2& rotation);
 
     const glm::vec3& GetPosition() const;
     const glm::vec2& GetRotation() const;
@@ -25,7 +25,7 @@ public:
  private:
     float m_FOV, m_Aspect, m_Near, m_Far;
     glm::vec3 m_Position;
-    glm::vec2 m_Rotation; // pitch, yaw
+    glm::vec2 m_Rotation; 
     glm::vec3 m_Forward, m_Right, m_Up;
 
     glm::mat4 m_ViewMatrix;

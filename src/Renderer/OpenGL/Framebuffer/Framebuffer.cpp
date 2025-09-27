@@ -4,16 +4,15 @@
 GLuint selectedFramebuffer;
 
 float fboVertices[] = {
-    // pos      // texCoords
-    -1.0f, -1.0f,  0.0f, 0.0f, // bottom-left
-     1.0f, -1.0f,  1.0f, 0.0f, // bottom-right
-     1.0f,  1.0f,  1.0f, 1.0f, // top-right
-    -1.0f,  1.0f,  0.0f, 1.0f  // top-left
+    -1.0f, -1.0f,  0.0f, 0.0f, 
+     1.0f, -1.0f,  1.0f, 0.0f,
+     1.0f,  1.0f,  1.0f, 1.0f, 
+    -1.0f,  1.0f,  0.0f, 1.0f  
 };
 
 unsigned int fboIndices[] = {
-    0, 1, 2, // first triangle
-    0, 2, 3  // second triangle
+    0, 1, 2,
+    0, 2, 3  
 };
 
 Framebuffer::Framebuffer(ShaderProgram& program) : fboShaderProgram(program) {
@@ -53,21 +52,18 @@ void Framebuffer::UnbindFramebuffer(GLuint fbo) {
 }
 
 void Framebuffer::CreateFramebufferTex() {
-    // Fix 1: Use RGBA8 to match the default format in Texture constructor
     texFBO = CreateEmptyTexture(
         s_CurrentWindow.width, s_CurrentWindow.height,
-        1, TextureType::Tex2D, TextureInternalFormat::RGBA8,  // Changed from RGB to RGBA8
-        0, TextureFilter::Linear, TextureFilter::Linear,       // Changed to Linear for better quality
+        1, TextureType::Tex2D, TextureInternalFormat::RGBA8, 
+        0, TextureFilter::Linear, TextureFilter::Linear,     
         TextureWrap::ClampToEdge, TextureWrap::ClampToEdge
     );
     glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0, texFBO->id, 0);
 
-    // Fix 2: Use separate depth attachment instead of combined depth-stencil
     glCreateRenderbuffers(1, &rbo);
     glNamedRenderbufferStorage(rbo, GL_DEPTH_COMPONENT24, s_CurrentWindow.width, s_CurrentWindow.height);
     glNamedFramebufferRenderbuffer(id, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
 
-    // Check for completeness
     GLenum status = glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr << "FBO incomplete! Status: 0x" << std::hex << status << std::endl;

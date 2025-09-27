@@ -30,7 +30,6 @@ void main() {
     Tangent = normalize(u_normalMatrix * aTangent);
     Bitangent = normalize(u_normalMatrix * aBitangent);
     
-    // Create TBN matrix for normal mapping
     TBN = mat3(Tangent, Bitangent, Normal);
     
     TexCoords = aTexCoords;

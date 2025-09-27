@@ -6,7 +6,7 @@ Buffer::Buffer(BufferType type, size_t size, const void* data, BufferUsage usage
         type == BufferType::Vertex  ? GL_ARRAY_BUFFER :
         type == BufferType::Index   ? GL_ELEMENT_ARRAY_BUFFER :
         type == BufferType::Uniform ? GL_UNIFORM_BUFFER :
-        GL_SHADER_STORAGE_BUFFER // Storage
+        GL_SHADER_STORAGE_BUFFER
       )
 {
     glCreateBuffers(1, &id);

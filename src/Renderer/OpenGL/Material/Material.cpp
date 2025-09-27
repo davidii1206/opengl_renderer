@@ -3,7 +3,6 @@
 #include <stdexcept>
 
 Material::Material(const std::string& name) : m_name(name) {
-    // Set default PBR values
     SetVec4("u_baseColorFactor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     SetFloat("u_metallicFactor", 1.0f);
     SetFloat("u_roughnessFactor", 1.0f);
@@ -11,7 +10,6 @@ Material::Material(const std::string& name) : m_name(name) {
     SetFloat("u_normalScale", 1.0f);
     SetFloat("u_occlusionStrength", 1.0f);
     
-    // Set texture availability flags to false by default
     SetBool("u_hasBaseColorTexture", false);
     SetBool("u_hasMetallicRoughnessTexture", false);
     SetBool("u_hasNormalTexture", false);
@@ -46,7 +44,6 @@ void Material::SetBool(const std::string& name, bool value) {
 void Material::SetTexture(const std::string& name, std::shared_ptr<Texture> texture) {
     m_parameters[name] = MaterialUniform(texture);
     
-    // Automatically set texture availability flags
     if (name == "u_baseColorTexture") {
         SetBool("u_hasBaseColorTexture", texture != nullptr);
     } else if (name == "u_metallicRoughnessTexture") {
@@ -123,11 +120,9 @@ void Material::Bind() {
     }
 
     m_shader->useShaderProgram();
-    
-    // Reset texture unit counter for this draw call
+
     m_nextTextureUnit = 0;
-    
-    // Apply all parameters
+
     for (const auto& [name, uniform] : m_parameters) {
         switch (uniform.type) {
             case MaterialParameter::Float:
@@ -150,7 +145,6 @@ void Material::Bind() {
                 break;
             case MaterialParameter::Texture:
                 if (uniform.textureValue) {
-                    // Assign texture unit
                     GLuint textureUnit = m_nextTextureUnit++;
                     uniform.textureValue->BindTextureForSampling(textureUnit);
                     m_shader->SetUniform1i(name, textureUnit);

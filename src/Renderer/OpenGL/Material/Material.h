@@ -45,11 +45,9 @@ public:
     Material(const std::string& name = "DefaultMaterial");
     ~Material() = default;
 
-    // Shader management
     void SetShader(std::shared_ptr<ShaderProgram> shader) { m_shader = shader; }
     std::shared_ptr<ShaderProgram> GetShader() const { return m_shader; }
 
-    // Parameter setters
     void SetFloat(const std::string& name, float value);
     void SetVec2(const std::string& name, const glm::vec2& value);
     void SetVec3(const std::string& name, const glm::vec3& value);
@@ -58,7 +56,6 @@ public:
     void SetBool(const std::string& name, bool value);
     void SetTexture(const std::string& name, std::shared_ptr<Texture> texture);
 
-    // Parameter getters
     float GetFloat(const std::string& name) const;
     glm::vec2 GetVec2(const std::string& name) const;
     glm::vec3 GetVec3(const std::string& name) const;
@@ -67,14 +64,11 @@ public:
     bool GetBool(const std::string& name) const;
     std::shared_ptr<Texture> GetTexture(const std::string& name) const;
 
-    // Apply all material parameters to the shader
     void Bind();
 
-    // Getters
     const std::string& GetName() const { return m_name; }
     void SetName(const std::string& name) { m_name = name; }
 
-    // Common PBR material properties (convenience methods)
     void SetBaseColor(const glm::vec4& color) { SetVec4("u_baseColorFactor", color); }
     void SetBaseColorTexture(std::shared_ptr<Texture> texture) { SetTexture("u_baseColorTexture", texture); }
     void SetMetallicFactor(float metallic) { SetFloat("u_metallicFactor", metallic); }
@@ -92,7 +86,6 @@ private:
     mutable GLuint m_nextTextureUnit = 0;
 };
 
-// Factory function
 inline std::shared_ptr<Material> CreateMaterial(const std::string& name = "DefaultMaterial") {
     return std::make_shared<Material>(name);
 }

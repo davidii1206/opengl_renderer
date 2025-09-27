@@ -57,31 +57,27 @@ inline void initPerlin() {
     Perlinvbo = CreateBuffer(BufferType::Vertex, sizeof(perlinCubeVertices), perlinCubeVertices, BufferUsage::Static, 0);
     Perlinvao->ApplyLayout(Perlinvbo->id);
 
-    // CRITICAL: Create texture with PROPER settings for seamless tiling
     PerlinTex = CreateEmptyTexture(
         width, height, 1,
         TextureType::Tex2D,
-        TextureInternalFormat::RGBA8,  // Changed from RGB8 to RGBA8 to match compute shader
-        0,                             // Unit 0
-        TextureFilter::Linear,         // Linear filtering for interpolation
-        TextureFilter::Linear,         // Linear filtering for interpolation
-        TextureWrap::Repeat,          // REPEAT for seamless wrapping
-        TextureWrap::Repeat,          // REPEAT for seamless wrapping
+        TextureInternalFormat::RGBA8, 
+        0,                          
+        TextureFilter::Linear,        
+        TextureFilter::Linear,       
+        TextureWrap::Repeat,   
+        TextureWrap::Repeat,      
         TextureWrap::Repeat
     );
 
-    // Create compute shader with seamless noise generation
     auto compPtr = CreateShader(ShaderStage::Compute, "Shader/Perlin.comp");
     PerlinShader = CreateShaderProgram(*compPtr);
 
-    // Set compute shader uniforms for seamless generation
     PerlinShader->useShaderProgram();
-    PerlinShader->SetUniform1f("uScale", 16.0f);         // Scale must match repeat period for seamless
-    PerlinShader->SetUniform1i("uOctaves", 4);           // Balanced detail
-    PerlinShader->SetUniform1f("uPersistence", 0.5f);    // Moderate persistence
-    PerlinShader->SetUniform1f("uLacunarity", 2.0f);     // Standard lacunarity
+    PerlinShader->SetUniform1f("uScale", 16.0f);      
+    PerlinShader->SetUniform1i("uOctaves", 4);     
+    PerlinShader->SetUniform1f("uPersistence", 0.5f); 
+    PerlinShader->SetUniform1f("uLacunarity", 2.0f);   
 
-    // Bind texture to image unit for compute shader writing
     PerlinTex->BindTextureForImageAccess(1, PerlinTex->id, TextureAccess::Write, TextureInternalFormat::RGBA8);
     
     // Initial compute dispatch
@@ -92,60 +88,50 @@ inline void initPerlin() {
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
-// Updated noise generation with seamless parameters
 inline void updatePerlinNoise() {
     PerlinShader->useShaderProgram();
     float currentTime = SDL_GetTicks() / 1000.0f;
     
-    // Set time uniform for animation
-    PerlinShader->SetUniform1f("uTime", currentTime * 0.3f); // Moderate time progression
+    PerlinShader->SetUniform1f("uTime", currentTime * 0.3f);
     
-    // CRITICAL: These parameters must create seamless noise
-    PerlinShader->SetUniform1f("uScale", 16.0f);        // Must match repeat period
-    PerlinShader->SetUniform1i("uOctaves", 4);          // Good balance
-    PerlinShader->SetUniform1f("uPersistence", 0.5f);   // Moderate
-    PerlinShader->SetUniform1f("uLacunarity", 2.0f);    // Standard
+    PerlinShader->SetUniform1f("uScale", 16.0f);    
+    PerlinShader->SetUniform1i("uOctaves", 4);          
+    PerlinShader->SetUniform1f("uPersistence", 0.5f);   
+    PerlinShader->SetUniform1f("uLacunarity", 2.0f);   
     
-    // Dispatch compute shader
     PerlinShader->DispatchCompute();
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 }
 
 inline void drawPerlin() {
-    // Update noise texture first
     updatePerlinNoise();
     
-    // Setup cube rendering
     Perlinvao->bind();
     PerlinCubeShader->useShaderProgram();
     
-    // Set cube shader uniforms
     float currentTime = SDL_GetTicks() / 1000.0f;
     PerlinCubeShader->SetUniform1f("uTime", currentTime);
-    PerlinCubeShader->SetUniform1f("uScrollSpeed", 0.1f);     // Moderate scroll speed
-    PerlinCubeShader->SetUniform1f("uSpacing", 1.0f);        // Distance between cubes
-    PerlinCubeShader->SetUniform1f("uCubeSize", 0.8f);       // Size of each cube  
-    PerlinCubeShader->SetUniform1f("uHeightScale", 8.0f);    // Height multiplier
-    PerlinCubeShader->SetUniform1i("uTextureSize", width);   // Use width variable
-    PerlinCubeShader->SetUniform1i("uTexture", 0);           // Texture unit 0
-    
-    // Bind texture for sampling in vertex shader
+    PerlinCubeShader->SetUniform1f("uScrollSpeed", 0.1f);  
+    PerlinCubeShader->SetUniform1f("uSpacing", 1.0f);        
+    PerlinCubeShader->SetUniform1f("uCubeSize", 0.8f);       
+    PerlinCubeShader->SetUniform1f("uHeightScale", 8.0f);   
+    PerlinCubeShader->SetUniform1i("uTextureSize", width); 
+    PerlinCubeShader->SetUniform1i("uTexture", 0);         
+
     PerlinTex->BindTextureForSampling(0);
     
-    // Apply OpenGL settings for 3D rendering
     OpenGLSettings settings;
     settings.depthTest = true;
     settings.cullFace = true;
     settings.cullMode = GL_BACK;
-    settings.blend = false;  // Disable blending for opaque cubes
+    settings.blend = false;  
     settings.Apply();
     
-    // Draw all instances
-    int totalInstances = width * height; // 256 * 256 = 65,536
+
+    int totalInstances = width * height; 
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, totalInstances);
 }
 
-// Smooth version with optimal parameters for seamless scrolling
 inline void drawPerlinSmooth() {
     updatePerlinNoise();
     
@@ -154,10 +140,10 @@ inline void drawPerlinSmooth() {
     
     float currentTime = SDL_GetTicks() / 1000.0f;
     PerlinCubeShader->SetUniform1f("uTime", currentTime);
-    PerlinCubeShader->SetUniform1f("uScrollSpeed", 0.05f);    // Slow, smooth scrolling
-    PerlinCubeShader->SetUniform1f("uSpacing", 2.f);        // Tight spacing for continuous look
-    PerlinCubeShader->SetUniform1f("uCubeSize", .9f);       // Smaller cubes for smooth appearance
-    PerlinCubeShader->SetUniform1f("uHeightScale", 5.0f);    // Moderate height variation
+    PerlinCubeShader->SetUniform1f("uScrollSpeed", 0.05f);    
+    PerlinCubeShader->SetUniform1f("uSpacing", 2.f);    
+    PerlinCubeShader->SetUniform1f("uCubeSize", .9f);     
+    PerlinCubeShader->SetUniform1f("uHeightScale", 5.0f);
     PerlinCubeShader->SetUniform1i("uTextureSize", width);
     PerlinCubeShader->SetUniform1i("uTexture", 0);
     
@@ -174,7 +160,7 @@ inline void drawPerlinSmooth() {
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, totalInstances);
 }
 
-// Debug version to test seamless tiling
+
 inline void drawPerlinDebugSeamless() {
     updatePerlinNoise();
     
@@ -183,21 +169,20 @@ inline void drawPerlinDebugSeamless() {
     
     float currentTime = SDL_GetTicks() / 1000.0f;
     PerlinCubeShader->SetUniform1f("uTime", currentTime);
-    PerlinCubeShader->SetUniform1f("uScrollSpeed", 0.2f);     // Fast scroll to see seams if they exist
-    PerlinCubeShader->SetUniform1f("uSpacing", 2.0f);        // Wide spacing for easy visibility
-    PerlinCubeShader->SetUniform1f("uCubeSize", 1.5f);       // Large cubes
-    PerlinCubeShader->SetUniform1f("uHeightScale", 10.0f);   // Exaggerated height
-    PerlinCubeShader->SetUniform1i("uTextureSize", 64);      // Smaller grid for testing
+    PerlinCubeShader->SetUniform1f("uScrollSpeed", 0.2f);
+    PerlinCubeShader->SetUniform1f("uSpacing", 2.0f);
+    PerlinCubeShader->SetUniform1f("uCubeSize", 1.5f);   
+    PerlinCubeShader->SetUniform1f("uHeightScale", 10.0f);  
+    PerlinCubeShader->SetUniform1i("uTextureSize", 64); 
     PerlinCubeShader->SetUniform1i("uTexture", 0);
     
     PerlinTex->BindTextureForSampling(0);
     
     OpenGLSettings settings;
     settings.depthTest = true;
-    settings.cullFace = false;  // Disable culling for debugging
+    settings.cullFace = false;
     settings.blend = false;
     settings.Apply();
-    
-    // Draw only 64x64 = 4,096 cubes for debugging
+
     glDrawArraysInstanced(GL_TRIANGLES, 0, 36, 64 * 64);
 }

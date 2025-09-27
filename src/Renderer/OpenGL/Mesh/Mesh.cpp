@@ -4,7 +4,6 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
-// Define PI constant for portability
 constexpr float PI = 3.14159265358979323846f;
 
 Mesh::Mesh() : m_boundingBoxMin(FLT_MAX), m_boundingBoxMax(-FLT_MAX), m_boundingBoxCalculated(false) {
@@ -73,17 +72,14 @@ void Mesh::SetupMesh() {
         return;
     }
 
-    // Create VAO
     m_vao = CreateVertexArray();
     m_vao->desc = Vertex3D::GetVertexDescription();
 
-    // Create VBO
     m_vbo = CreateBuffer(BufferType::Vertex, 
                          m_vertices.size() * sizeof(Vertex3D), 
                          m_vertices.data(), 
                          BufferUsage::Static);
 
-    // Create EBO if we have indices
     if (!m_indices.empty()) {
         m_ebo = CreateBuffer(BufferType::Index, 
                              m_indices.size() * sizeof(uint32_t), 
@@ -91,10 +87,8 @@ void Mesh::SetupMesh() {
                              BufferUsage::Static);
     }
 
-    // Setup vertex attributes
     m_vao->ApplyLayout(m_vbo->id);
 
-    // Bind the element buffer to the VAO if it exists
     if (m_ebo) {
         m_vao->bind();
         m_ebo->bind();
@@ -107,7 +101,6 @@ void Mesh::UpdateBuffers() {
         return;
     }
 
-    // Update VBO
     if (m_vbo && !m_vertices.empty()) {
         if (m_vbo->size < m_vertices.size() * sizeof(Vertex3D)) {
             // Need to recreate buffer if it's too small
@@ -121,7 +114,6 @@ void Mesh::UpdateBuffers() {
         }
     }
 
-    // Update EBO
     if (!m_indices.empty()) {
         if (!m_ebo || m_ebo->size < m_indices.size() * sizeof(uint32_t)) {
             m_ebo = CreateBuffer(BufferType::Index, 
@@ -161,7 +153,6 @@ void Mesh::Draw() const {
 
     m_vao->bind();
 
-    // If no submeshes, draw the entire mesh with default material
     if (m_subMeshes.empty()) {
         if (m_defaultMaterial) {
             m_defaultMaterial->Bind();
@@ -173,24 +164,20 @@ void Mesh::Draw() const {
             glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(m_vertices.size()));
         }
     } else {
-        // Draw each submesh with its material
         for (const auto& submesh : m_subMeshes) {
             if (submesh.indexCount == 0) continue;
-            
-            // Use submesh material if available, otherwise use default
+
             auto material = submesh.material ? submesh.material : m_defaultMaterial;
             if (material) {
                 material->Bind();
             }
 
-            // Draw the submesh
             if (!m_indices.empty()) {
                 glDrawElements(GL_TRIANGLES, 
                               static_cast<GLsizei>(submesh.indexCount), 
                               GL_UNSIGNED_INT, 
                               reinterpret_cast<void*>(submesh.indexOffset * sizeof(uint32_t)));
             } else {
-                // For non-indexed drawing (rare case)
                 glDrawArrays(GL_TRIANGLES, 
                             static_cast<GLint>(submesh.indexOffset),
                             static_cast<GLsizei>(submesh.indexCount));
@@ -205,13 +192,11 @@ void Mesh::CalculateTangents() {
         return;
     }
 
-    // Clear existing tangents and bitangents
     for (auto& vertex : m_vertices) {
         vertex.tangent = glm::vec3(0.0f);
         vertex.bitangent = glm::vec3(0.0f);
     }
 
-    // Calculate tangents for each triangle
     for (size_t i = 0; i < m_indices.size(); i += 3) {
         if (i + 2 >= m_indices.size()) break;
         
@@ -235,8 +220,7 @@ void Mesh::CalculateTangents() {
         glm::vec2 deltaUV2 = v2.texCoords - v0.texCoords;
 
         float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-        
-        // Handle degenerate UV coordinates
+   
         if (!std::isfinite(f)) {
             f = 0.0f;
         }
@@ -253,32 +237,26 @@ void Mesh::CalculateTangents() {
         v2.bitangent += bitangent;
     }
 
-    // Normalize tangents and bitangents, apply Gram-Schmidt orthogonalization
     for (auto& vertex : m_vertices) {
         if (glm::length(vertex.tangent) > 0.0f) {
             vertex.tangent = glm::normalize(vertex.tangent);
             
-            // Gram-Schmidt orthogonalization
             vertex.tangent = glm::normalize(vertex.tangent - vertex.normal * glm::dot(vertex.normal, vertex.tangent));
             
-            // Calculate handedness
             if (glm::dot(glm::cross(vertex.normal, vertex.tangent), vertex.bitangent) < 0.0f) {
                 vertex.tangent = -vertex.tangent;
             }
         } else {
-            // Fallback tangent
             vertex.tangent = glm::vec3(1.0f, 0.0f, 0.0f);
         }
 
         if (glm::length(vertex.bitangent) > 0.0f) {
             vertex.bitangent = glm::normalize(vertex.bitangent);
         } else {
-            // Fallback bitangent
             vertex.bitangent = glm::cross(vertex.normal, vertex.tangent);
         }
     }
 
-    // Update the vertex buffer with new tangent data
     UpdateBuffers();
     spdlog::debug("Calculated tangents for {} vertices", m_vertices.size());
 }
@@ -342,44 +320,37 @@ bool Mesh::IsValid() const {
     return true;
 }
 
-// Mesh utility functions
 namespace MeshUtils {
     
 std::unique_ptr<Mesh> CreateCube(float size) {
     float halfSize = size * 0.5f;
     
     std::vector<Vertex3D> vertices = {
-        // Front face
         Vertex3D(glm::vec3(-halfSize, -halfSize,  halfSize), glm::vec3(0, 0, 1), glm::vec2(0, 0)),
         Vertex3D(glm::vec3( halfSize, -halfSize,  halfSize), glm::vec3(0, 0, 1), glm::vec2(1, 0)),
         Vertex3D(glm::vec3( halfSize,  halfSize,  halfSize), glm::vec3(0, 0, 1), glm::vec2(1, 1)),
         Vertex3D(glm::vec3(-halfSize,  halfSize,  halfSize), glm::vec3(0, 0, 1), glm::vec2(0, 1)),
         
-        // Back face
         Vertex3D(glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(0, 0, -1), glm::vec2(1, 0)),
         Vertex3D(glm::vec3(-halfSize,  halfSize, -halfSize), glm::vec3(0, 0, -1), glm::vec2(1, 1)),
         Vertex3D(glm::vec3( halfSize,  halfSize, -halfSize), glm::vec3(0, 0, -1), glm::vec2(0, 1)),
         Vertex3D(glm::vec3( halfSize, -halfSize, -halfSize), glm::vec3(0, 0, -1), glm::vec2(0, 0)),
         
-        // Top face
         Vertex3D(glm::vec3(-halfSize,  halfSize, -halfSize), glm::vec3(0, 1, 0), glm::vec2(0, 1)),
         Vertex3D(glm::vec3(-halfSize,  halfSize,  halfSize), glm::vec3(0, 1, 0), glm::vec2(0, 0)),
         Vertex3D(glm::vec3( halfSize,  halfSize,  halfSize), glm::vec3(0, 1, 0), glm::vec2(1, 0)),
         Vertex3D(glm::vec3( halfSize,  halfSize, -halfSize), glm::vec3(0, 1, 0), glm::vec2(1, 1)),
         
-        // Bottom face
         Vertex3D(glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(0, -1, 0), glm::vec2(1, 1)),
         Vertex3D(glm::vec3( halfSize, -halfSize, -halfSize), glm::vec3(0, -1, 0), glm::vec2(0, 1)),
         Vertex3D(glm::vec3( halfSize, -halfSize,  halfSize), glm::vec3(0, -1, 0), glm::vec2(0, 0)),
         Vertex3D(glm::vec3(-halfSize, -halfSize,  halfSize), glm::vec3(0, -1, 0), glm::vec2(1, 0)),
         
-        // Right face
         Vertex3D(glm::vec3( halfSize, -halfSize, -halfSize), glm::vec3(1, 0, 0), glm::vec2(1, 0)),
         Vertex3D(glm::vec3( halfSize,  halfSize, -halfSize), glm::vec3(1, 0, 0), glm::vec2(1, 1)),
         Vertex3D(glm::vec3( halfSize,  halfSize,  halfSize), glm::vec3(1, 0, 0), glm::vec2(0, 1)),
         Vertex3D(glm::vec3( halfSize, -halfSize,  halfSize), glm::vec3(1, 0, 0), glm::vec2(0, 0)),
         
-        // Left face
         Vertex3D(glm::vec3(-halfSize, -halfSize, -halfSize), glm::vec3(-1, 0, 0), glm::vec2(0, 0)),
         Vertex3D(glm::vec3(-halfSize, -halfSize,  halfSize), glm::vec3(-1, 0, 0), glm::vec2(1, 0)),
         Vertex3D(glm::vec3(-halfSize,  halfSize,  halfSize), glm::vec3(-1, 0, 0), glm::vec2(1, 1)),
@@ -387,12 +358,12 @@ std::unique_ptr<Mesh> CreateCube(float size) {
     };
     
     std::vector<uint32_t> indices = {
-        0,  1,  2,   2,  3,  0,   // Front
-        4,  5,  6,   6,  7,  4,   // Back
-        8,  9,  10,  10, 11, 8,   // Top
-        12, 13, 14,  14, 15, 12,  // Bottom
-        16, 17, 18,  18, 19, 16,  // Right
-        20, 21, 22,  22, 23, 20   // Left
+        0,  1,  2,   2,  3,  0,   
+        4,  5,  6,   6,  7,  4,  
+        8,  9,  10,  10, 11, 8,  
+        12, 13, 14,  14, 15, 12,  
+        16, 17, 18,  18, 19, 16, 
+        20, 21, 22,  22, 23, 20  
     };
     
     auto mesh = CreateMesh(vertices, indices);
@@ -404,7 +375,6 @@ std::unique_ptr<Mesh> CreateSphere(float radius, int segments) {
     std::vector<Vertex3D> vertices;
     std::vector<uint32_t> indices;
     
-    // Generate vertices
     for (int lat = 0; lat <= segments; ++lat) {
         float theta = lat * PI / segments;
         float sinTheta = sin(theta);
@@ -423,7 +393,6 @@ std::unique_ptr<Mesh> CreateSphere(float radius, int segments) {
         }
     }
     
-    // Generate indices
     for (int lat = 0; lat < segments; ++lat) {
         for (int lon = 0; lon < segments; ++lon) {
             uint32_t first = lat * (segments + 1) + lon;
@@ -483,4 +452,4 @@ std::unique_ptr<Mesh> CreateQuad() {
     return mesh;
 }
 
-} // namespace MeshUtils
+} 
